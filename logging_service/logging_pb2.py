@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rlogging.proto\"&\n\nLogRequest\x12\x0b\n\x03uid\x18\x01 \x01(\t\x12\x0b\n\x03msg\x18\x02 \x01(\t\"\x1d\n\x0bLogResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\"\x1b\n\x07LogList\x12\x10\n\x08messages\x18\x01 \x03(\t\"\x07\n\x05\x45mpty2V\n\x0eLoggingService\x12\'\n\nLogMessage\x12\x0b.LogRequest\x1a\x0c.LogResponse\x12\x1b\n\x07GetLogs\x12\x06.Empty\x1a\x08.LogListb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rlogging.proto\"&\n\nLogRequest\x12\x0b\n\x03uid\x18\x01 \x01(\t\x12\x0b\n\x03msg\x18\x02 \x01(\t\"\x1d\n\x0bLogResponse\x12\x0e\n\x06status\x18\x01 \x01(\t\"\x1b\n\x07LogList\x12\x10\n\x08messages\x18\x01 \x01(\t\"\x07\n\x05\x45mpty2V\n\x0eLoggingService\x12\'\n\nLogMessage\x12\x0b.LogRequest\x1a\x0c.LogResponse\x12\x1b\n\x07GetLogs\x12\x06.Empty\x1a\x08.LogListb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)

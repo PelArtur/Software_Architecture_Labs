@@ -22,7 +22,7 @@ message LogResponse
 
 message LogList
 {
-    repeated string messages = 1;
+    string messages = 1;
 }
 
 

@@ -10,7 +10,7 @@ import logging_service.logging_pb2 as logging_pb2
 import logging_service.logging_pb2_grpc as logging_pb2_grpc
 
 LOGGING_SERVICE_HOST = "localhost:50051"
-MESSAGES_SERVICE_URL = "http://localhost:8002/messages"
+MESSAGES_SERVICE_URL = "http://localhost:8001/messages"
 
 
 facade_service = FastAPI()
@@ -46,7 +46,7 @@ def send_message(request: MessageRequest):
 def get_message():
     client: logging_pb2_grpc.LoggingServiceStub = get_grpc_client()
     logs = client.GetLogs(logging_pb2.Empty()).messages
-    
+
     response = requests.get(MESSAGES_SERVICE_URL)
     messages_response = response.text
     return {"logs": logs, "messages_service": messages_response}
