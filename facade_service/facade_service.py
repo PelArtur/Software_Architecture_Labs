@@ -1,17 +1,15 @@
 import uuid
 import grpc
 import requests
-import logging
 from fastapi import FastAPI
 from pydantic import BaseModel
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_fixed, RetryError
 
 import logging_service.logging_pb2 as logging_pb2
 import logging_service.logging_pb2_grpc as logging_pb2_grpc
 
-LOGGING_SERVICE_HOST = "localhost:50051"
-MESSAGES_SERVICE_URL = "http://localhost:8001/messages"
-
+LOGGING_SERVICE_HOST = "127.0.0.1:50051"
+MESSAGES_SERVICE_URL = "http://127.0.0.1:8001/messages"
 
 facade_service = FastAPI()
 
@@ -25,11 +23,15 @@ def get_grpc_client() -> logging_pb2_grpc.LoggingServiceStub:
     return logging_pb2_grpc.LoggingServiceStub(channel)
 
 
-@retry(stop=stop_after_attempt(5), wait=wait_fixed(3))
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(3))
 def send_to_logging_service(uid: str, msg: str) -> str:
     client = get_grpc_client()
-    response = client.LogMessage(logging_pb2.LogRequest(uid=uid, msg=msg))
-    return response.status
+    try:
+        response = client.LogMessage(logging_pb2.LogRequest(uid=uid, msg=msg))
+        return response.status
+    except grpc.RpcError as e:
+        print(f"Retry failed with error: {e.details()}")
+        raise e
 
 
 @facade_service.post("/send-msg")
@@ -38,6 +40,8 @@ def send_message(request: MessageRequest):
     try:
         status = send_to_logging_service(uid=uid, msg=request.message)
         return {"uuid": uid, "status": status}
+    except RetryError as e:
+        return {"error": "Retry Error"}
     except Exception as e:
         return {"error": str(e)}
 
@@ -48,5 +52,5 @@ def get_message():
     logs = client.GetLogs(logging_pb2.Empty()).messages
 
     response = requests.get(MESSAGES_SERVICE_URL)
-    messages_response = response.text
+    messages_response = response.text.replace('"', '')
     return {"logs": logs, "messages_service": messages_response}
