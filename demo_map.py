@@ -1,8 +1,9 @@
-import hazelcast
+from hazelcast import HazelcastClient
+
 
 if __name__ == "__main__":
     print("Connection...")
-    client = hazelcast.HazelcastClient(
+    client = HazelcastClient(
         cluster_name="dev", 
     ) 
 

@@ -2,6 +2,7 @@ from multiprocessing import Process
 from typing import List
 from hazelcast import HazelcastClient
 
+
 def increment_map_value(client_id: int, map_name: str, key: str, iterations: int):
     client = HazelcastClient(cluster_name="dev")
     print(f"Client {client_id} connected")
