@@ -12,5 +12,8 @@ if __name__ == "__main__":
     data = {i: i for i in range(1000)}
     map.put_all(data)
 
+    print("\nReceiving data...")
+    for key, value in map.entry_set():
+        print(f"{key}: {value}")
     client.shutdown()
     print("Done!")
