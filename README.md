@@ -2,7 +2,17 @@
 
 Author: Artur Pelcharskyi
 
-Before running python scripts install all required libs:
+## Getting Started
+
+The laboratory work was performed and tested on the following configuration:
+
+- **OS**: Windows 11
+- **Python**: 3.10.0
+- **Hazelcast**: 5.3.0
+- **Hazelcast Management Center**: 5.3.0
+
+
+Before running the Python scripts, install all required libraries:
 ```
 pip install -r requirements.txt
 ```
@@ -114,15 +124,47 @@ We observe that the final value is 13188, despite the expected value of 30000. A
 During this experiment, a classic multi-threaded/multi-process error occurred — a data race. This happens when one client reads the value before another client writes it back, causing the current client to overwrite the previous result with its own.
 
 
-<!-- ```
-docker run -d --name hz-node1 --network hazelcast-network -e HZ_CLUSTERNAME=dev -e HZ_NETWORK_PUBLICADDRESS=172.18.0.1:5701 -p 5701:5701 hazelcast/hazelcast:5.3.0
+### **5-7. Distributed Map with locks**
+
+Pessimistic and optimistic locking are implemented in `pessimistic_lock.py` and `optimistic_lock.py`, respectively. Both scripts run 3 threads with different clients, performing the same operations as in `no_lock.py`. Let’s examine the final value of the "key" key for both methods, as well as their execution times:
+
+![alttext](images/image11.png)
+
+So, we can observe that this time there was no data loss, and both methods produced the correct result of 30000. It is also evident that pessimistic locking performs slower than optimistic locking. On the other hand, pessimistic locking requires fewer accesses to the map compared to optimistic locking:
+
+- distributed-pessimistic-lock-map
+    ![alttext](images/image12.png)
+- distributed-optimistic-lock-map
+    ![alttext](images/image13.png)
+
+Finally, to confirm the results in terms of execution time, let’s run both scripts again:
+
+![alttext](images/image14.png)
+
+
+### **8. Bounded queue**
+
+In `b_queue_producer.py`, a script is implemented to run a client that adds values to the bounded queue, while `b_queue_consumer.py` runs two clients that retrieve values from the queue. Since the queue has a maximum capacity of 10 elements, the following configuration should be added to `hazelcast.xml`:
+
+```xml
+<queue name="bounded_queue">
+        <max-size>10</max-size>
+</queue>
 ```
 
+The node will then be restarted to apply the changes:
 ```
-docker run -d --name hz-node2 --network hazelcast-network -e HZ_CLUSTERNAME=dev -e HZ_NETWORK_PUBLICADDRESS=172.18.0.1:5702 -p 5702:5701 hazelcast/hazelcast:5.3.0
+docker run -it --name hz-node1 --network hazelcast-network --rm -v "${PWD}/hazelcast.xml:/opt/hazelcast/hazelcast.xml" -e HAZELCAST_CONFIG=hazelcast.xml -e HZ_NETWORK_PUBLICADDRESS=172.18.0.1:5701 -e HZ_CLUSTERNAME=dev -p 5701:5701 hazelcast/hazelcast:5.3.0
 ```
 
-```
-docker run -d --name hz-node3 --network hazelcast-network -e HZ_CLUSTERNAME=dev -e HZ_NETWORK_PUBLICADDRESS=172.18.0.1:5703 -p 5703:5701 hazelcast/hazelcast:5.3.0
-``` -->
+Now, we can run both scripts in two different terminals and observe the following result:
 
+![alttext](images/image15.png)
+
+The producer sequentially adds values to the queue, and the consumers sequentially retrieve them in the same order. Additionally, the consumers follow an alternating pattern: the i-th element is taken by Consumer 1, the (i + 1)-th by Consumer 2, the (i + 2)-th by Consumer 1, and so on.
+
+Now, let’s run only the producer script to verify that the queue size is limited to 10:
+
+![alttext](images/image16.png)
+
+We can see that the producer added numbers from 1 to 10 and then blocked, waiting for the queue size to decrease below 10. This confirms that the queue configuration was applied successfully.
