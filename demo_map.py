@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
     map = client.get_map("my-distributed-map").blocking() 
 
-    print("Add data...")
+    print("Adding data...")
     data = {i: i for i in range(1000)}
     map.put_all(data)
 
