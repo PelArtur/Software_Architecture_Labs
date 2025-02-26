@@ -3,9 +3,7 @@ from hazelcast import HazelcastClient
 
 if __name__ == "__main__":
     print("Connection...")
-    client = HazelcastClient(
-        cluster_name="dev", 
-    ) 
+    client = HazelcastClient(cluster_name="dev") 
 
     map = client.get_map("my-distributed-map").blocking() 
 
