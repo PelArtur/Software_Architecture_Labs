@@ -91,7 +91,7 @@ After disabling `hz-node2` and `hz-node3` simultaneously:
 
 ![alttext](images/image7.png)
 
-This time, some data was lost. It is likely that all the lost data was stored on one of the disabled nodes, as replication was only able to preserve the data from one node on `hz-node1`.
+This time, some data was lost. It is likely that all the lost data was stored on one of the disabled nodes, as `hz-node1` contained a backup of only one other node due to the configuration in `hazelcast.xml`.
 
 #### **3d. How to prevent data loss?**
 To prevent data loss in Hazelcast, you can adjust certain settings of the data structures. One option is to modify the number of backups. In the `config/hazelcast.xml` file, you can change the following value:
@@ -109,7 +109,7 @@ When using 3 nodes, as in our case, this value should be set to 2. Since the def
 
 ### **4. Distributed Map without locks**
 
-Using `no_lock.py`, three clients are launched. Each client retrieves the value of the key "key", increments it by 1, and writes the result back. There are 3 such clients, and each performs 10,000 iterations. After execution, the following results were obtained:
+Using `no_lock.py`, three clients are launched. Each client retrieves the value of the key "key", increments it by 1, and writes the result back. There are 3 such clients, and each performs 10000 iterations. After execution, the following results were obtained:
 
 ![alttext](images/image8.png)
 
@@ -141,6 +141,7 @@ Finally, to confirm the results in terms of execution time, let’s run both scr
 
 ![alttext](images/image14.png)
 
+From the second run, the timings remained roughly the same, so optimistic locking is indeed faster than pessimistic locking
 
 ### **8. Bounded queue**
 
@@ -148,7 +149,7 @@ In `b_queue_producer.py`, a script is implemented to run a client that adds valu
 
 ```xml
 <queue name="bounded_queue">
-        <max-size>10</max-size>
+    <max-size>10</max-size>
 </queue>
 ```
 
