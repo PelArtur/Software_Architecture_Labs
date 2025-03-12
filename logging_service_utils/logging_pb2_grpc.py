@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import logging_service.logging_pb2 as logging__pb2
+import logging_service_utils.logging_pb2 as logging__pb2
 
 GRPC_GENERATED_VERSION = '1.70.0'
 GRPC_VERSION = grpc.__version__
