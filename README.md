@@ -1,4 +1,4 @@
-# Microservices with Hazelcast Distributed Map
+# Microservices with Kafka Message Queue
 
 Author: Artur Pelcharskyi
 
@@ -21,7 +21,7 @@ pip install -r requirements.txt
 
 ## Changes
 
-The functionality of the Messages Service has been updated, and as a result, the Facade Service has also undergone some changes. Now, the connection from the Facade to the Messages Service is organized through the Kafka Messages Queue. Therefore, to begin, you should start the Kafka cluster using the following command:
+The functionality of the Messages Service has been updated, and as a result, the Facade Service has also undergone some changes. Now, the connection from the Facade to the Messages Service is organized through the Kafka Message Queue. Therefore, to begin, you should start the Kafka cluster using the following command:
 
 ```bash
 docker-compose up -d
@@ -66,7 +66,7 @@ First, let’s start all the services and check whether they have registered wit
 
 ![alttext](images/image2.png)
 
-We can see that 3 instances of the Logging Service and 2 instances of the Messages Service have been successfully launched. Now, let’s send 10 messages to the Facade Service and observe the distribution of messages between the microservices:
+We can see that 3 instances of the **Logging Service** and 2 instances of the **Messages Service** have been successfully launched. Now, let’s send 10 messages to the **Facade Service **and observe the distribution of messages between the microservices:
 
 **Logging Service**
 
@@ -79,7 +79,7 @@ We can see that 3 instances of the Logging Service and 2 instances of the Messag
 ![alttext](images/image6.png)
 ![alttext](images/image7.png)
 
-Additionally, the GET request returns different results depending on which instance of the Messages Service is selected:
+Additionally, the GET request returns different results depending on which instance of the **Messages Service** is selected:
 
 ![alttext](images/image8.png)
 ![alttext](images/image9.png)
@@ -88,7 +88,7 @@ Therefore, we can conclude that all services are functioning correctly, sharing 
 
 ### Task 2
 
-Now, we will not start the Messages Service and will send 100 messages:
+Now, we will not start the **Messages Service** and will send 100 messages:
 
 ![alttext](images/image10.png)
 
@@ -100,7 +100,7 @@ The leader is the broker with ID 1. Now, let's locate its Docker container and d
 
 ![alttext](images/image12.png)
 
-Finally, let's verify through the UI that broker 3 has been removed and a new leader has been elected:
+Finally, let's verify through the UI that broker 1 has been removed and a new leader has been elected:
 
 ![alttext](images/image13.png)
 
