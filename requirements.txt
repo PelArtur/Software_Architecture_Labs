@@ -5,3 +5,4 @@ tenacity==9.0.0
 requests==2.32.3
 uvicorn==0.34.0
 hazelcast-python-client==5.3.0
+kafka-python==2.1.5

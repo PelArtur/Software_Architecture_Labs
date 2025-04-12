@@ -10,10 +10,13 @@ from typing import List
 import logging_service_utils.logging_pb2 as logging_pb2
 import logging_service_utils.logging_pb2_grpc as logging_pb2_grpc
 from config_server_utils.config_server import get_ips_from_config_server
+from kafka_utils.kafka_hf import create_producer, create_topic
+from kafka.errors import KafkaTimeoutError
 
 
 facade_service = FastAPI()
-
+create_topic(config.MS_QUEUE_TOPIC_NAME, 3, 3)
+producer = create_producer()
 
 class MessageRequest(BaseModel):
     message: str
@@ -38,18 +41,31 @@ def send_to_logging_service(uid: str, msg: str) -> str:
     except grpc.RpcError as e:
         print(f"Facade Service {config.FACADE_PORT}. Retry failed with error: {e.details()}")
         raise e
+    
+
+def send_to_messages_service(msg: str) -> str:
+    try:
+        producer.send(config.MS_QUEUE_TOPIC_NAME, value={"message": msg})
+        producer.flush(config.PRODUCER_FLUSH_TIMEOUT_S)
+    except KafkaTimeoutError as e:
+        return "Broker is unreachable. Message not sent to Messages service."
+    return "OK"
 
 
 @facade_service.post("/send-msg")
 def send_message(request: MessageRequest):
     uid = str(uuid.uuid4())
+    result_message = dict()
     try:
         status = send_to_logging_service(uid=uid, msg=request.message)
-        return {"uuid": uid, "status": status}
+        result_message = {"uuid": uid, "logging service status": status}
     except RetryError as e:
         return {"error": "Retry Error"}
     except Exception as e:
         return {"error": str(e)}
+    
+    result_message["messages queue status"] = send_to_messages_service(msg=request.message)
+    return result_message
 
 
 @facade_service.get("/get-msg")    

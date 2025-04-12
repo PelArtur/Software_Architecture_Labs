@@ -13,7 +13,7 @@ class IPServiceServicer(config_server_pb2_grpc.IPServiceServicer):
     def __init__(self):
         self.services = {
                 config.CONFIG_SERVER_LOGGING:  [],
-                config.CONFIG_SERVER_MESSAGES: [f"{config.HOST}:{config.MESSAGES_PORT}"]
+                config.CONFIG_SERVER_MESSAGES: []
             }
 
 
