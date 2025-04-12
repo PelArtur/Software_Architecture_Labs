@@ -12,20 +12,31 @@ The laboratory work was performed and tested on the following configuration:
 - **Hazelcast Management Center**: 5.5.0
 
 Before running the Python scripts, install all required libraries:
-```
+```bash
 pip install -r requirements.txt
 ```
-**❗Warning!** In this work, Hazelcast clusters are launched from binary files instead of Docker containers, as was done in the previous work. Therefore, before starting, ensure that all [hazelcast-5.5.0](https://hazelcast.com/community-edition-projects/downloads/) files are located in the same directory as this project. Additionally, replace the `hazelcast-5.5.0/config/hazelcast.xml` file with the one provided in this repository. The complete project structure should look like this:
+**❗Warning!** In this work, Hazelcast clusters are launched from binary files. Therefore, before starting, ensure that all [hazelcast-5.5.0](https://hazelcast.com/community-edition-projects/downloads/) files are located in the same directory as this project. Additionally, replace the `hazelcast-5.5.0/config/hazelcast.xml` file with the one provided in this repository. The complete project structure should look like this:
 
 ![alttext](images/image1.png)
 
 ## Changes
 
-A new service has been added: the **Config Server**, which dynamically stores the IP addresses of microservices. In the current version, these include the **Logging Service** and the **Messages Service**. Since the Messages Service does not yet have any functionality and is always launched as a single instance, the Config Server stores a static IP address for this service, which remains unchanged throughout its operation. For the Logging Service, IP addresses are added when a new instance of the service is launched and removed when the service is shut down. As a result, the Config Server only stores the IP addresses of active Logging Service instances.
+The functionality of the Messages Service has been updated, and as a result, the Facade Service has also undergone some changes. Now, the connection from the Facade to the Messages Service is organized through the Kafka Messages Queue. Therefore, to begin, you should start the Kafka cluster using the following command:
 
-This work includes two different runners:
-1. `ms-runner.py`: Runs one instance each of three services — **Facade Service**, **Messages Service**, and **Client Server**.
+```bash
+docker-compose up -d
+```
+
+Additionally, a script has been created to automatically send messages to the Facade. It can be executed as follows:
+
+```bash
+python ./send_messages.py <num-of-messages>
+```
+
+This work includes three different runners:
+1. `ms-runner.py`: Runs one instance each of two services — **Facade Service**  and **Client Server**.
 2. `logging-runner.py`: Starts one instance of the **Logging Service** and one Hazelcast cluster node. This script requires the port for the microservice to be passed as an argument. In this work, the default ports are **50051–50053**. The cluster nodes automatically assign their own ports.
+3. `messages_runner.py`: Runs one instance of **Messages Service**.
 
 The correct launch order is as follows:
 ```
@@ -40,33 +51,63 @@ python ./logging_runner.py 50052
 python ./logging_runner.py 50053
 ```
 
+and
+
+```
+python ./messages_runner.py 51000
+python ./messages_runner.py 51001
+```
+
 ## Tasks
+
+### Task 1
+
+First, let’s start all the services and check whether they have registered with the Config Server:
 
 ![alttext](images/image2.png)
 
-We can observe that after running all the scripts, the IP addresses of all three Logging Services have been successfully added to the Config Server.
+We can see that 3 instances of the Logging Service and 2 instances of the Messages Service have been successfully launched. Now, let’s send 10 messages to the Facade Service and observe the distribution of messages between the microservices:
 
-Now, using Postman, we will add 10 messages:
+**Logging Service**
 
 ![alttext](images/image3.png)
-
-Let’s review the logs of each Logging Service:
-
 ![alttext](images/image4.png)
 ![alttext](images/image5.png)
+
+**Messages Service**
+
 ![alttext](images/image6.png)
-
-We can observe that the messages were added through different instances of the Logging Service. Now, let’s check the result when we request to retrieve all the messages:
-
 ![alttext](images/image7.png)
+
+Additionally, the GET request returns different results depending on which instance of the Messages Service is selected:
+
 ![alttext](images/image8.png)
-
-So, we successfully retrieved all 10 messages, which were sent via the Logging Service running on port 50051. Now, let’s disable the Logging Services on ports 50051 and 50053 and verify whether we can still obtain the same result.
-
 ![alttext](images/image9.png)
 
-Once again, we obtained exactly the same result, albeit with the messages in a different order. Below, you can verify that the Logging Service instances were disabled, their IP addresses were removed from the Config Server, and that the `Get` request was successfully processed through the Logging Service running on port 50052:
+Therefore, we can conclude that all services are functioning correctly, sharing input data among themselves without any loss under standard conditions.
+
+### Task 2
+
+Now, we will not start the Messages Service and will send 100 messages:
 
 ![alttext](images/image10.png)
+
+After sending 100 messages, we will exclude one of the brokers. According to the task condition, this should be the leader, so let's first identify it via the UI:
+
 ![alttext](images/image11.png)
 
+The leader is the broker with ID 1. Now, let's locate its Docker container and disable it:
+
+![alttext](images/image12.png)
+
+Finally, let's verify through the UI that broker 3 has been removed and a new leader has been elected:
+
+![alttext](images/image13.png)
+
+Now, let's start the two instances of the Messages Service and observe the results they produce:
+
+![alttext](images/image14.png)
+
+As a result, it was possible to read the messages even after losing one broker. In this case, the first instance of the Messages Service read more messages because it was started a little earlier. The image might not display the log clearly, so I’ve also moved it to `ms_out1.txt` and `ms_out2.txt`. Additionally, you can observe that the order of the read messages is slightly different, but a potential reason for this is how the messages are distributed across the partitions.
+
+![alttext](images/image15.png)

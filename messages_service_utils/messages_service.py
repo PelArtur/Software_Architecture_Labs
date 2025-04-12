@@ -12,7 +12,6 @@ service_port: int = 0
 consuming: bool = True
 
 def consume_messages():
-    print("Starting message consumption...")
     consumer = create_consumer(topic=config.MS_QUEUE_TOPIC_NAME, group_id=config.MS_QUEUE_CONSUMER_GROUP)
     while consuming:
         records = consumer.poll(timeout_ms=config.CONSUMER_POLL_TIMEOUT_MS)
