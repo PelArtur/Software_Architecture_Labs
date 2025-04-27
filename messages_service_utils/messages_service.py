@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from threading import Thread
 from kafka_utils.kafka_hf import create_consumer
-from consul_service_utils.consul_service import register_service, deregister_service
+from consul_service_utils.consul_service import register_service, deregister_service, get_key_value
 from typing import List
 
 message_service = FastAPI()
@@ -13,9 +13,13 @@ service_id: str = ""
 consuming: bool = True
 
 def consume_messages():
-    consumer = create_consumer(topic=config.MS_QUEUE_TOPIC_NAME, group_id=config.MS_QUEUE_CONSUMER_GROUP)
+    ms_queue_config = get_key_value(config.MESSAGES_QUEUE_CONFIG_KEY)
+    
+    consumer = create_consumer(topic=ms_queue_config["topic_name"], 
+                               brokers=ms_queue_config["bootstrap_servers"],
+                               group_id=ms_queue_config["consumer_group"])
     while consuming:
-        records = consumer.poll(timeout_ms=config.CONSUMER_POLL_TIMEOUT_MS)
+        records = consumer.poll(timeout_ms=ms_queue_config["poll_timeout_ms"])
         for key in records:
             for message in records[key]:
                 messages.append(message.value["message"])

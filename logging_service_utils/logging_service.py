@@ -6,15 +6,17 @@ from concurrent import futures
 
 import logging_service_utils.logging_pb2 as logging_pb2
 import logging_service_utils.logging_pb2_grpc as logging_pb2_grpc
-from consul_service_utils.consul_service import register_service, deregister_service
+from consul_service_utils.consul_service import register_service, deregister_service, get_key_value
 
 
 class LoggingService(logging_pb2_grpc.LoggingServiceServicer):
     def __init__(self, port: int):
         self.__port = port
         self.__service_id = config.SERVICE_NAME_LOGGING + "-" + str(self.__port)
-        self.client = hazelcast.HazelcastClient(cluster_name=config.HZ_CLUSTER_NAME)
-        self.messages_map = self.client.get_map(config.HZ_MESSAGES_MAP_NAME).blocking()
+        
+        hz_config = get_key_value(config.HAZELCAST_CONFIG_KEY)
+        self.client = hazelcast.HazelcastClient(cluster_name=hz_config["cluster_name"])
+        self.messages_map = self.client.get_map(name=hz_config["messages_map_name"]).blocking()
 
         register_service(
             service_name=config.SERVICE_NAME_LOGGING,

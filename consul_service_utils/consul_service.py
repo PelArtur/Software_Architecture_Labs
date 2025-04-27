@@ -1,6 +1,7 @@
 import consul
 import random
-from typing import List
+import json
+from typing import List, Dict
 
 def register_service(service_name: str, service_id: str, service_address: str, service_port: int) -> None:
     client = consul.Consul()
@@ -32,3 +33,18 @@ def get_service_address(service_name: str) -> List[str]:
 
     random.shuffle(service_ips)
     return service_ips
+
+
+def add_key_value(key: str, value: str) -> None:
+    client = consul.Consul()
+    client.kv.put(key, value)
+
+
+def get_key_value(key: str) -> Dict:
+    client = consul.Consul()
+    _, data = client.kv.get(key)
+    if data is None:
+        return None
+
+    data = data['Value'].decode('utf-8')
+    return json.loads(data)

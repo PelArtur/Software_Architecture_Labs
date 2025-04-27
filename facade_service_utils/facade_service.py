@@ -10,16 +10,16 @@ from typing import List
 
 import logging_service_utils.logging_pb2 as logging_pb2
 import logging_service_utils.logging_pb2_grpc as logging_pb2_grpc
-from consul_service_utils.consul_service import get_service_address, register_service, deregister_service
+from consul_service_utils.consul_service import get_service_address, register_service, deregister_service, get_key_value
 from kafka_utils.kafka_hf import create_producer, create_topic
+from kafka import KafkaProducer
 from kafka.errors import KafkaTimeoutError
 
-
 facade_service = FastAPI()
-create_topic(config.MS_QUEUE_TOPIC_NAME, 3, 3)
 service_port: int = 0
 service_id: str = ""
-producer = None
+producer: KafkaProducer = None
+
 
 class MessageRequest(BaseModel):
     message: str
@@ -48,8 +48,9 @@ def send_to_logging_service(uid: str, msg: str) -> str:
 
 def send_to_messages_service(msg: str) -> str:
     try:
-        producer.send(config.MS_QUEUE_TOPIC_NAME, value={"message": msg})
-        producer.flush(config.PRODUCER_FLUSH_TIMEOUT_S)
+        ms_queue_config = get_key_value(config.MESSAGES_QUEUE_CONFIG_KEY)
+        producer.send(ms_queue_config["topic_name"], value={"message": msg})
+        producer.flush(ms_queue_config["flush_timeout_ms"])
     except KafkaTimeoutError as e:
         return "Broker is unreachable. Message not sent to Messages service."
     return "OK"
@@ -100,6 +101,14 @@ def serve(port: int):
     global service_port, service_id, producer
     service_port = port
     service_id = config.SERVICE_NAME_FACADE + "-" + str(port)
+    ms_queue_config = get_key_value(config.MESSAGES_QUEUE_CONFIG_KEY)
+    
+    create_topic(
+        topic_name=ms_queue_config["topic_name"], 
+        brokers=ms_queue_config["bootstrap_servers"],
+        partitions=ms_queue_config["partitions"], 
+        replication_factor=ms_queue_config["replication_factor"]
+    )
     register_service(
         service_name=config.SERVICE_NAME_FACADE,
         service_id=service_id,
@@ -107,5 +116,5 @@ def serve(port: int):
         service_port=port
     )
     
-    producer = create_producer()
+    producer = create_producer(ms_queue_config["bootstrap_servers"])
     uvicorn.run(facade_service, host=config.HOST, port=service_port)

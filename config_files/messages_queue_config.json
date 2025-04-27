@@ -1,0 +1,12 @@
+{
+    "bootstrap_servers": [
+        "localhost:19092",
+        "localhost:19093",
+        "localhost:19094"],
+    "topic_name": "messages_queue",
+    "consumer_group": "messages_service_group",
+    "partitions": 3,
+    "replication_factor": 3,
+    "poll_timeout_ms": 10,
+    "flush_timeout_ms": 10
+}

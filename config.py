@@ -1,5 +1,3 @@
-from typing import List
-
 #Main data
 HOST: str = "127.0.0.1"
 
@@ -14,24 +12,11 @@ SERVICE_NAME_LOGGING: str = "logging_service"
 SERVICE_NAME_MESSAGES: str = "messages_service"
 SERVICE_NAME_FACADE: str = "facade_service"
 
-#Hazelcast
-HZ_CLUSTER_NAME: str = "dev"
-HZ_MESSAGES_MAP_NAME: str = "messages_map"
-
-#Config server keys
-CONFIG_SERVER_LOGGING: str = "logging_service"
-CONFIG_SERVER_MESSAGES: str = "messages_service"
-
-#Kafka
-BOOTSTRAP_SERVERS: List[str] = [
-    "localhost:19092",
-    "localhost:19093",
-    "localhost:19094"
-]
-MS_QUEUE_TOPIC_NAME: str = "messages_queue"
-MS_QUEUE_CONSUMER_GROUP: str = "messages_service_group"
-CONSUMER_POLL_TIMEOUT_MS: int = 10
-PRODUCER_FLUSH_TIMEOUT_S: int = 10
+#Config files and data keys
+MESSAGES_QUEUE_CONFIG_PATH: str = "./config_files/messages_queue_config.json"
+MESSAGES_QUEUE_CONFIG_KEY: str = "messages_queue_config"
+HAZELCAST_CONFIG_PATH: str = "./config_files/hazelcast_config.json"
+HAZELCAST_CONFIG_KEY: str = "hazelcast_config"
 
 #Exceptions
 class InactiveService(Exception):
