@@ -21,7 +21,7 @@ pip install -r requirements.txt
 
 ## Changes
 
-The functionality of the Messages Service has been updated, and as a result, the Facade Service has also undergone some changes. Now, the connection from the Facade to the Messages Service is organized through the Kafka Message Queue. Therefore, to begin, you should start the Kafka cluster using the following command:
+Consul server added. Therefore, to begin, you should start the Kafka cluster and Consul server using the following command:
 
 ```bash
 docker-compose up -d
@@ -104,7 +104,7 @@ Let's send 10 more messages and see how they are distributed now:
 
 We observe that the second batches of messages were distributed between the **Logging Services** on ports `50051` and `50053`, while all messages were sent to the **Messages Service** on port `51001`. No messages were lost.
 
-Additionally, in the first batch, the messages that were initially processed by **Logging Service** `50052` were redirected to **Logging Service** `50053`. Similarly, for the **Messages Service**: all messages that were initially handled by **Messages Service** `51000` were redirected to **Messages Service** `51001`.
+Additionally, in the first batch, all messages that were initially handled by **Messages Service** `51000` were redirected to **Messages Service** `51001`.
 
 Thus, I successfully integrated the Consul server into the system.
 
