@@ -3,12 +3,16 @@ from typing import List
 #Main data
 HOST: str = "127.0.0.1"
 
-#Microservices ports
-FACADE_PORT: int = 8000
-MESSAGES_PORT: int = 8001
-CONFIG_SERVER_PORT: int = 8002
+#Microservices base ports
+BASE_FACADE_PORT: int = 8000
 BASE_LOGGING_PORT: int = 50051
 BASE_MESSAGING_PORT: int = 51000
+CONSUL_PORT: int = 8500
+
+#Microservices names
+SERVICE_NAME_LOGGING: str = "logging_service"
+SERVICE_NAME_MESSAGES: str = "messages_service"
+SERVICE_NAME_FACADE: str = "facade_service"
 
 #Hazelcast
 HZ_CLUSTER_NAME: str = "dev"

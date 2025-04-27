@@ -3,12 +3,13 @@ import uvicorn
 from fastapi import FastAPI
 from threading import Thread
 from kafka_utils.kafka_hf import create_consumer
-from config_server_utils.config_server import add_ip_to_config_server, remove_ip_from_config_server
+from consul_service_utils.consul_service import register_service, deregister_service
 from typing import List
 
 message_service = FastAPI()
 messages: List[str] = []
 service_port: int = 0
+service_id: str = ""
 consuming: bool = True
 
 def consume_messages():
@@ -30,14 +31,20 @@ def send_message():
 def on_shutdown():
     global consuming
     print(f"Messages Service {service_port}. Cleaning up MessagesService {service_port}...")
-    remove_ip_from_config_server(config.CONFIG_SERVER_MESSAGES, f"{config.HOST}:{service_port}")
+    deregister_service(service_id)
     consuming = False
     print("Done!")
 
 
 def serve(port: int):
-    global service_port
+    global service_port, service_id
     service_port = port
+    service_id = config.SERVICE_NAME_MESSAGES + "-" + str(service_port)
     Thread(target=consume_messages, daemon=True).start()
-    add_ip_to_config_server(config.CONFIG_SERVER_MESSAGES, f"{config.HOST}:{service_port}")
+    register_service(
+        service_name=config.SERVICE_NAME_MESSAGES,
+        service_id=service_id,
+        service_address=config.HOST,
+        service_port=service_port
+    )
     uvicorn.run(message_service, host=config.HOST, port=service_port)

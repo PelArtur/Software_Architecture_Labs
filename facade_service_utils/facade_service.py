@@ -2,6 +2,7 @@ import uuid
 import grpc
 import requests
 import config
+import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 from tenacity import retry, stop_after_attempt, wait_fixed, RetryError
@@ -9,14 +10,16 @@ from typing import List
 
 import logging_service_utils.logging_pb2 as logging_pb2
 import logging_service_utils.logging_pb2_grpc as logging_pb2_grpc
-from config_server_utils.config_server import get_ips_from_config_server
+from consul_service_utils.consul_service import get_service_address, register_service, deregister_service
 from kafka_utils.kafka_hf import create_producer, create_topic
 from kafka.errors import KafkaTimeoutError
 
 
 facade_service = FastAPI()
 create_topic(config.MS_QUEUE_TOPIC_NAME, 3, 3)
-producer = create_producer()
+service_port: int = 0
+service_id: str = ""
+producer = None
 
 class MessageRequest(BaseModel):
     message: str
@@ -29,9 +32,9 @@ def get_grpc_client(host: str) -> logging_pb2_grpc.LoggingServiceStub:
 
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(3))
 def send_to_logging_service(uid: str, msg: str) -> str:
-    logging_client_ip: List[str] = get_ips_from_config_server(config.CONFIG_SERVER_LOGGING).split(" ")
+    logging_client_ip: List[str] = get_service_address(config.SERVICE_NAME_LOGGING)
     if len(logging_client_ip) == 0 or logging_client_ip[0] == '':
-        print(f"Facade Service {config.FACADE_PORT}. There are currently no active Logging services. Please start the Logging service and try again.")
+        print(f"Facade Service {service_port}. There are currently no active Logging services. Please start the Logging service and try again.")
         raise config.InactiveService("Logging service is inactive.")
 
     client = get_grpc_client(logging_client_ip[0])
@@ -39,7 +42,7 @@ def send_to_logging_service(uid: str, msg: str) -> str:
         response = client.LogMessage(logging_pb2.LogRequest(uid=uid, msg=msg))
         return response.status
     except grpc.RpcError as e:
-        print(f"Facade Service {config.FACADE_PORT}. Retry failed with error: {e.details()}")
+        print(f"Facade Service {service_port}. Retry failed with error: {e.details()}")
         raise e
     
 
@@ -70,19 +73,39 @@ def send_message(request: MessageRequest):
 
 @facade_service.get("/get-msg")    
 def get_message():
-    logging_client_ip: List[str] = get_ips_from_config_server(config.CONFIG_SERVER_LOGGING).split(" ")
+    logging_client_ip: List[str] = get_service_address(config.SERVICE_NAME_LOGGING)
     if len(logging_client_ip) == 0 or logging_client_ip[0] == '':
-        print(f"Facade Service {config.FACADE_PORT}. There are currently no active Logging services. Please start the Logging service and try again.")
+        print(f"Facade Service {service_port}. There are currently no active Logging services. Please start the Logging service and try again.")
         return {"error": "Logging service is inactive"}
 
     client: logging_pb2_grpc.LoggingServiceStub = get_grpc_client(logging_client_ip[0])
     logs = client.GetLogs(logging_pb2.Empty()).messages
 
-    messages_client_ip: List[str] = get_ips_from_config_server(config.CONFIG_SERVER_MESSAGES).split(" ")
+    messages_client_ip: List[str] = get_service_address(config.SERVICE_NAME_MESSAGES)
     if len(messages_client_ip) == 0 or messages_client_ip[0] == '':
-        print(f"Facade Service {config.FACADE_PORT}. There are currently no active Messages services. Please start the Messages service and try again.")
+        print(f"Facade Service {service_port}. There are currently no active Messages services. Please start the Messages service and try again.")
         return {"error": "Messages service is inactive"}
 
     response = requests.get(f"http://{messages_client_ip[0]}/messages")
     messages_response = response.text.replace('"', '')
     return {"logs": logs, "messages_service": messages_response}
+
+
+@facade_service.on_event("shutdown")
+def on_shutdown():
+    deregister_service(service_id)
+
+
+def serve(port: int):
+    global service_port, service_id, producer
+    service_port = port
+    service_id = config.SERVICE_NAME_FACADE + "-" + str(port)
+    register_service(
+        service_name=config.SERVICE_NAME_FACADE,
+        service_id=service_id,
+        service_address=config.HOST,
+        service_port=port
+    )
+    
+    producer = create_producer()
+    uvicorn.run(facade_service, host=config.HOST, port=service_port)
