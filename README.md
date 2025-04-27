@@ -1,4 +1,4 @@
-# Microservices with Kafka Message Queue
+# Microservices with Consul
 
 Author: Artur Pelcharskyi
 
@@ -34,16 +34,20 @@ python ./send_messages.py <num-of-messages>
 ```
 
 This work includes three different runners:
-1. `ms-runner.py`: Runs one instance each of two services — **Facade Service**  and **Client Server**.
-2. `logging-runner.py`: Starts one instance of the **Logging Service** and one Hazelcast cluster node. This script requires the port for the microservice to be passed as an argument. In this work, the default ports are **50051–50053**. The cluster nodes automatically assign their own ports.
+1. `facade_runner.py`: Runs one instance each of **Facade Service**.
+2. `logging_runner.py`: Starts one instance of the **Logging Service** and one Hazelcast cluster node. This script requires the port for the microservice to be passed as an argument. In this work, the default ports are **50051–50053**. The cluster nodes automatically assign their own ports.
 3. `messages_runner.py`: Runs one instance of **Messages Service**.
 
 The correct launch order is as follows:
 ```
-python ./ms_runner.py
+python ./populate_data.py
 ```
 
 After that in different terminals:
+
+```
+python ./facade_runner.py 8000
+```
 
 ```
 python ./logging_runner.py 50051
@@ -60,54 +64,48 @@ python ./messages_runner.py 51001
 
 ## Tasks
 
-### Task 1
+First, let's add the configuration data for **Hazelcast** and the **Messages queue**:
 
-First, let’s start all the services and check whether they have registered with the Config Server:
+```
+python ./populate_data.py
+```
 
-![alttext](images/image2.png)
+In **Consul**, we can verify that the necessary keys have been successfully added:
 
-We can see that 3 instances of the **Logging Service** and 2 instances of the **Messages Service** have been successfully launched. Now, let’s send 10 messages to the **Facade Service **and observe the distribution of messages between the microservices:
+![!alttext](/images/image1.png)
 
-**Logging Service**
+Now, let's start **1 instance** of the **Facade Service**, **3 instances** of the **Logging Service**, and **2 instances** of the **Messages Service**:
 
-![alttext](images/image3.png)
-![alttext](images/image4.png)
-![alttext](images/image5.png)
+![!alttext](/images/image2.png)
+![!alttext](/images/image9.png)
+![!alttext](/images/image7.png)
+![!alttext](/images/image8.png)
 
-**Messages Service**
+In **Consul**, we can see that the number of instances matches exactly the number of service instances we launched.
 
-![alttext](images/image6.png)
-![alttext](images/image7.png)
+Let's send 10 messages and observe where they are routed:
 
-Additionally, the GET request returns different results depending on which instance of the **Messages Service** is selected:
+![!alttext](/images/image3.png)
+![!alttext](/images/image4.png)
+![!alttext](/images/image5.png)
+![!alttext](/images/image6.png)
 
-![alttext](images/image8.png)
-![alttext](images/image9.png)
 
-Therefore, we can conclude that all services are functioning correctly, sharing input data among themselves without any loss under standard conditions.
+Now, disable the **Logging Service** running on port `50052` and the **Messages Service** running on port `51000`.
 
-### Task 2
+![!alttext](/images/image10.png)
+![!alttext](/images/image11.png)
 
-Now, we will not start the **Messages Service** and will send 100 messages:
+Let's send 10 more messages and see how they are distributed now:
 
-![alttext](images/image10.png)
+![!alttext](/images/image12.png)
+![!alttext](/images/image13.png)
+![!alttext](/images/image14.png)
 
-After sending 100 messages, we will exclude one of the brokers. According to the task condition, this should be the leader, so let's first identify it via the UI:
+We observe that the second batches of messages were distributed between the **Logging Services** on ports `50051` and `50053`, while all messages were sent to the **Messages Service** on port `51001`. No messages were lost.
 
-![alttext](images/image11.png)
+Additionally, in the first batch, the messages that were initially processed by **Logging Service** `50052` were redirected to **Logging Service** `50053`. Similarly, for the **Messages Service**: all messages that were initially handled by **Messages Service** `51000` were redirected to **Messages Service** `51001`.
 
-The leader is the broker with ID 1. Now, let's locate its Docker container and disable it:
+Thus, I successfully integrated the Consul server into the system.
 
-![alttext](images/image12.png)
-
-Finally, let's verify through the UI that broker 1 has been removed and a new leader has been elected:
-
-![alttext](images/image13.png)
-
-Now, let's start the two instances of the Messages Service and observe the results they produce:
-
-![alttext](images/image14.png)
-
-As a result, it was possible to read the messages even after losing one broker. In this case, the first instance of the Messages Service read more messages because it was started a little earlier. The image might not display the log clearly, so I’ve also moved it to `ms_out1.txt` and `ms_out2.txt`. Additionally, you can observe that the order of the read messages is slightly different, but a potential reason for this is how the messages are distributed across the partitions.
-
-![alttext](images/image15.png)
+Consul correctly manages the running services, and I was able to significantly simplify the configuration script. It no longer contains hardcoded information about Hazelcast, the Messages Queue, service IP addresses, or ports. Instead, it only stores the keys required to access this data, which greatly simplifies and improves the maintainability of the code.
